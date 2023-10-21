@@ -9,7 +9,7 @@ class StreamlitApp:
         st.title("Hodgkin-Huxley Model Simulation")
 
         model = HodgkinHuxleyModel(
-            V_init=-70, n_init=0.317, m_init=0.05, h_init=0.6, dt=0.01, t_final=50
+            V_init=-70, n_init=0.317, m_init=0.05, h_init=0.6, dt=0.02, t_final=15
         )
 
         V_init = st.slider("Initial Voltage (mV)", -100, 100, model.V_init)
@@ -25,7 +25,7 @@ class StreamlitApp:
 
         t, V, n, m, h = model.simulate()
 
-        fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, figsize=(10, 8))
+        fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, figsize=(10, 12))
 
         ax1.plot(t, V, label="Voltage (mV)")
         ax1.set_ylabel("Voltage (mV)")

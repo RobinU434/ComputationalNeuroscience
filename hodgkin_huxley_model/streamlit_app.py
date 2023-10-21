@@ -1,4 +1,5 @@
 from matplotlib import pyplot as plt
+import numpy as np
 import streamlit as st
 
 from hodgkin_huxley_model.hodgkin_huxley import HodgkinHuxleyModel
@@ -8,28 +9,33 @@ class StreamlitApp:
     def run(self):
         st.title("Hodgkin-Huxley Model Simulation")
 
+
+        V_init = st.slider("Initial Voltage (mV)", -100, 100, -65)
+        n_init = 0.317
+        m_init = 0.05
+        h_init = 0.6
+        t_final = 50
+
+        I_inj = st.slider("Injection current [µA/(cm^2)]", 0.0, 10., 2.)
+        inj_time = st.slider("Time for injection current", 0, t_final, (30, 33))
+        
         model = HodgkinHuxleyModel(
-            V_init=-70, n_init=0.317, m_init=0.05, h_init=0.6, dt=0.02, t_final=15
+            V_init=V_init, n_init=n_init, m_init=m_init, h_init=h_init, dt=0.1, t_final=t_final
         )
 
-        V_init = st.slider("Initial Voltage (mV)", -100, 100, model.V_init)
-        n_init = st.slider("Initial n", 0.0, 1.0, model.n_init)
-        m_init = st.slider("Initial m", 0.0, 1.0, model.m_init)
-        h_init = st.slider("Initial h", 0.0, 1.0, model.h_init)
+        I_inj = np.ones_like(model.t) * I_inj
+        start, stop = inj_time
+        outside_interval = np.where(np.logical_or(model.t<start, model.t>stop))
+        I_inj[outside_interval] = 0
+        t, V, n, m, h = model.simulate(I_inj)
 
-        # if st.button("Run Simulation"):
-        model.V_init = V_init
-        model.n_init = n_init
-        model.m_init = m_init
-        model.h_init = h_init
-
-        t, V, n, m, h = model.simulate()
-
-        fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, figsize=(10, 12))
+        fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, figsize=(10, 15))
 
         ax1.plot(t, V, label="Voltage (mV)")
+        # ax1.plot(t, I_inj, label="Injection current")
         ax1.set_ylabel("Voltage (mV)")
         ax1.set_title("Hodgkin-Huxley Model Simulation")
+        # ax1.set_ylim(-60, 60)
         ax1.grid()
 
         ax2.plot(t, n, label="n")

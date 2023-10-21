@@ -1,4 +1,6 @@
+from typing import Tuple
 import numpy as np
+
 
 class HodgkinHuxleyModel:
     def __init__(self, V_init, n_init, m_init, h_init, dt, t_final):
@@ -8,7 +10,7 @@ class HodgkinHuxleyModel:
         self.h_init = h_init
         self.dt = dt
         self.t_final = t_final
-        
+
         # membrane capacitance, in µF/cm^2
         self.C_m = 1.0
         # maximum conductances, in mS/cm^2
@@ -16,21 +18,14 @@ class HodgkinHuxleyModel:
         self.g_K = 36.0  # Potassium
         self.g_L = 0.3  # leak
         # Nernst reversal potentials, in mV
-        self.E_Na = 50.0  
-        self.E_K = -77.0  
-        self.E_L = -54.387
+        self.E_Na = 50.0
+        # self.E_Na = -115
+        self.E_K = -77.0
+        # self.E_K = 12.0
+        self.E_L = -54.38
+        # self.E_L = -10.
 
         self.t = np.arange(0, self.t_final, self.dt)
-
-        self.V = np.empty(len(self.t))
-        self.n = np.empty(len(self.t))
-        self.m = np.empty(len(self.t))
-        self.h = np.empty(len(self.t))
-
-        self.V[0] = self.V_init
-        self.n[0] = self.n_init
-        self.m[0] = self.m_init
-        self.h[0] = self.h_init
 
     def _n(self, V_prev: float, n_prev: float) -> float:
         """Represents the probability that the voltage-gated potassium channels are open. These channels are responsible for the outward movement of potassium ions, contributing to the repolarization of the cell membrane.
@@ -40,14 +35,19 @@ class HodgkinHuxleyModel:
             n_prev (float): _description_
 
         Returns:
-            float: 
+            float:
         """
-    
-        alpha_n = 0.01 * (V_prev + 55) / (1 - np.exp(-0.1 * (V_prev + 55)))
-        beta_n = 0.125 * np.exp(-0.0125 * (V_prev + 65))
-        n = n_prev + self.dt * (alpha_n * (1 - n_prev) - beta_n * n_prev)
+
+        # alpha_n determines the rate of transfer from outside to inside
+        alpha_n = 0.01 * (V_prev + 55) / (1 - np.exp(-(V_prev + 55) / 10))
+        # alpha_n =  (0.01 * (10 - V_prev)) / (np.exp((10 - V_prev) / 10) - 1)
+
+        # alpha_n determines the rate of transfer from inside to outside,
+        beta_n = 0.125 * np.exp(-(V_prev + 65) / 80)
+        # beta_n = 0.125 * np.exp(- V_prev / 80)
+        n = f(alpha=alpha_n, beta=beta_n, prev_value=n_prev, dt=self.dt)
+
         return n
-    
 
     def _m(self, V_prev: float, m_prev: float) -> float:
         """Represents the probability that the voltage-gated sodium channels are open. These channels are responsible for the inward movement of sodium ions, which leads to the depolarization of the cell membrane.
@@ -61,7 +61,8 @@ class HodgkinHuxleyModel:
         """
         alpha_m = 0.1 * (V_prev + 40) / (1 - np.exp(-0.1 * (V_prev + 40)))
         beta_m = 4.0 * np.exp(-0.0556 * (V_prev + 65))
-        m = m_prev + self.dt * (alpha_m * (1 - m_prev) - beta_m * m_prev)
+        m = f(alpha=alpha_m, beta=beta_m, prev_value=m_prev, dt=self.dt)
+        
         return m
 
     def _h(self, V_prev: float, h_prev: float) -> float:
@@ -76,11 +77,14 @@ class HodgkinHuxleyModel:
         """
         alpha_h = 0.07 * np.exp(-0.05 * (V_prev + 65))
         beta_h = 1 / (1 + np.exp(-0.1 * (V_prev + 35)))
-        h = h_prev + self.dt * (alpha_h * (1 - h_prev) - beta_h * h_prev)
+        h = f(alpha=alpha_h, beta=beta_h, prev_value=h_prev, dt=self.dt)
+
         return h
-    
-    def _v(self, m_prev: float, h_prev: float, n_prev: float, v_prev: float) -> float:
-        """ represents the membrane potential, or the voltage across the cell membrane. It is the main variable that governs the behavior of the system.
+
+    def _v(
+        self, m_prev: float, h_prev: float, n_prev: float, v_prev: float, I_inj: float
+    ) -> float:
+        """represents the membrane potential, or the voltage across the cell membrane. It is the main variable that governs the behavior of the system.
 
         Args:
             m_prev (float): _description_
@@ -91,17 +95,38 @@ class HodgkinHuxleyModel:
         Returns:
             _type_: _description_
         """
-        I_Na = self.g_Na * (m_prev ** 3) * h_prev * (v_prev - self.E_Na)
-        I_K = self.g_K * (n_prev ** 4) * (v_prev - self.E_K)
+        I_Na = self.g_Na * (m_prev**3) * h_prev * (v_prev - self.E_Na)
+        I_K = self.g_K * (n_prev**4) * (v_prev - self.E_K)
         I_L = self.g_L * (v_prev - self.E_L)
-        I_inj = 10  # injected current
-        v = v_prev + self.dt * ((I_inj - I_Na - I_K - I_L) / self.C_m)
+        v = v_prev + self.dt * ((I_inj - I_Na - I_K - I_L) / 1.0)
         return v
 
-    def simulate(self):
+    def simulate(self, I_inj: np.ndarray):
+        self.V = np.empty(len(self.t))
+        self.n = np.empty(len(self.t))
+        self.m = np.empty(len(self.t))
+        self.h = np.empty(len(self.t))
+
+        self.V[0] = self.V_init
+        self.n[0] = self.n_init
+        self.m[0] = self.m_init
+        self.h[0] = self.h_init
+
         for i in range(1, len(self.t)):
             self.n[i] = self._n(V_prev=self.V[i - 1], n_prev=self.n[i - 1])
             self.m[i] = self._m(V_prev=self.V[i - 1], m_prev=self.m[i - 1])
             self.h[i] = self._h(V_prev=self.V[i - 1], h_prev=self.h[i - 1])
-            self.V[i] = self._v(m_prev=self.m[i - 1], h_prev=self.h[i - 1], n_prev=self.n[i - 1], v_prev=self.V[i - 1])
+
+            self.V[i] = self._v(
+                m_prev=self.m[i - 1],
+                h_prev=self.h[i - 1],
+                n_prev=self.n[i - 1],
+                v_prev=self.V[i - 1],
+                I_inj=I_inj[i - 1],
+            )
+
         return self.t, self.V, self.n, self.m, self.h
+
+
+def f(alpha: float, beta: float, prev_value: float, dt: float) -> float:
+    return prev_value + dt * (alpha * (1 - prev_value) - beta * prev_value)

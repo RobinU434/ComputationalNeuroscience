@@ -6,8 +6,9 @@ from hodgkin_huxley_model.hodgkin_huxley import HodgkinHuxleyModel
 
 
 class StreamlitApp:
-    def __init__(self, t_final: int = 50) -> None:
+    def __init__(self, t_final: int = 50, dt: float = 0.1) -> None:
         self.t_final = t_final
+        self.dt = dt
         self.V_init: float
         self.n_init: float = 0.317
         self.m_init: float = 0.05
@@ -26,7 +27,7 @@ class StreamlitApp:
             n_init=self.n_init,
             m_init=self.m_init,
             h_init=self.h_init,
-            dt=0.1,
+            dt=self.dt,
             t_final=self.t_final,
         )
 
@@ -115,9 +116,10 @@ class StreamlitApp:
         # voltage figure
         v_figure = plt.figure()
         v_ax = v_figure.add_subplot()
-        v_ax.plot(self.model.t, self.model.V, label="Voltage (mV)")
+        v_ax.plot(self.model.t, self.model.V, label="Voltage [mV]")
         # v_ax.plot(t, I_inj, label="Injection current")
-        v_ax.set_ylabel("Voltage (mV)")
+        v_ax.set_ylabel("Voltage [mV]")
+        v_ax.set_xlabel("time [mS]")
         v_ax.set_title("Hodgkin-Huxley Model Simulation")
         # v_ax.set_ylim(-60, 60)
         v_ax.grid()
@@ -129,21 +131,23 @@ class StreamlitApp:
             return 
         
         fig, (inj_ax, n_ax, m_ax, h_ax) = plt.subplots(4, 1, figsize=(10, 15), sharex=True)
-        inj_ax.plot(self.model.t, I_inj, label="injection current")
+        inj_ax.plot(self.model.t, I_inj, label="injection current [mA]")
         inj_ax.set_ylabel("injection_current")
         inj_ax.grid()
         
-        n_ax.plot(self.model.t, self.model.n, label="n: sodium current")
+        n_ax.plot(self.model.t, self.model.n, label="n: sodium current [mA]")
         n_ax.set_ylabel("n: sodium current")
         n_ax.grid()
 
-        m_ax.plot(self.model.t, self.model.m, label="m: potassium current")
+        m_ax.plot(self.model.t, self.model.m, label="m: potassium current [mA]")
         m_ax.set_ylabel("m: potassium current")
         m_ax.grid()
 
-        h_ax.plot(self.model.t, self.model.h, label="h: leak current")
+        h_ax.plot(self.model.t, self.model.h, label="h: leak current [mA]")
         h_ax.set_xlabel("Time (ms)")
         h_ax.set_ylabel("h: leak_current")
         h_ax.grid()
+
+        h_ax.set_xlabel("time [mS]")
 
         st.pyplot(fig)

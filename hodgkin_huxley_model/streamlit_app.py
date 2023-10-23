@@ -6,13 +6,13 @@ from hodgkin_huxley_model.hodgkin_huxley import HodgkinHuxleyModel
 
 
 class StreamlitApp:
-    def __init__(self, t_final: int = 50, dt: float = 0.1) -> None:
+    def __init__(self, t_final: int = 100, dt: float = 0.2) -> None:
         self.t_final = t_final
         self.dt = dt
-        self.V_init: float
-        self.n_init: float = 0.317
-        self.m_init: float = 0.05
-        self.h_init: float = 0.6
+        self.V_init: float = -64.9964
+        self.n_init: float = 0.3177
+        self.m_init: float = 0.0530
+        self.h_init: float = 0.5960
 
         self.model: HodgkinHuxleyModel
 
@@ -83,15 +83,15 @@ class StreamlitApp:
             "Initial Voltage (mV)",
             -100,
             100,
-            -65,
+            self.V_init,
             help="Initial Voltage (V_init): The starting membrane potential in mV.",
         )
         
         self.I_inj = st.slider(
-            "Injection current [µA/(cm^2)]",
+            "Injection current [mA/(cm^2)]",
             0.0,
-            10.0,
-            2.0,
+            0.15,
+            0.3,
             help="Injection current (I_inj): The external current injected into the cell.",
         )
 

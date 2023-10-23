@@ -125,8 +125,6 @@ class HodgkinHuxleyModel:
                 I_inj=I_inj[i - 1],
             )
 
-        return self.t, self.V, self.n, self.m, self.h
-
 
 def f(alpha: float, beta: float, prev_value: float, dt: float) -> float:
     return prev_value + dt * (alpha * (1 - prev_value) - beta * prev_value)

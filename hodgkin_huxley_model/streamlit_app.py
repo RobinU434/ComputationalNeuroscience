@@ -6,9 +6,40 @@ from hodgkin_huxley_model.hodgkin_huxley import HodgkinHuxleyModel
 
 
 class StreamlitApp:
+    def __init__(self, t_final: int = 50) -> None:
+        self.t_final = t_final
+        self.V_init: float
+        self.n_init: float = 0.317
+        self.m_init: float = 0.05
+        self.h_init: float = 0.6
+
+        self.model: HodgkinHuxleyModel
+
     def run(self):
         st.title("Hodgkin-Huxley Model Simulation")
+        self._add_documentation()
+        
+        self._add_slider()
 
+        self.model = HodgkinHuxleyModel(
+            V_init=self.V_init,
+            n_init=self.n_init,
+            m_init=self.m_init,
+            h_init=self.h_init,
+            dt=0.1,
+            t_final=self.t_final,
+        )
+
+        I_inj = self._create_injection_current()
+        
+        self.model.simulate(I_inj)
+        
+        self._plot_voltage()
+        self._plot_currents(I_inj)
+        
+
+    @staticmethod
+    def _add_documentation():
         st.markdown(
             """
             The Hodgkin-Huxley model is a mathematical representation of the electrical 
@@ -45,71 +76,74 @@ class StreamlitApp:
         st.markdown(
             r"Here, $V$ represents the membrane potential, $m$, $n$, and $h$ are the gating variables, and $I_{\text{inj}}$, $I_{\text{Na}}$, $I_{\text{K}}$, and $I_{\text{L}}$ denote the injected current, sodium current, potassium current, and leakage current, respectively. $C_m$ represents the membrane capacitance. The variables are functions of the membrane potential, and their dynamics are influenced by the voltage-dependent activation and inactivation properties of the ion channels."
         )
-        
-        V_init = st.slider(
+    
+    def _add_slider(self):
+        self.V_init = st.slider(
             "Initial Voltage (mV)",
             -100,
             100,
             -65,
             help="Initial Voltage (V_init): The starting membrane potential in mV.",
         )
-        n_init = 0.317
-        m_init = 0.05
-        h_init = 0.6
-        t_final = 50
-
-        I_inj = st.slider(
+        
+        self.I_inj = st.slider(
             "Injection current [µA/(cm^2)]",
             0.0,
             10.0,
             2.0,
             help="Injection current (I_inj): The external current injected into the cell.",
         )
-        inj_time = st.slider(
+
+        self.inj_time = st.slider(
             "Time for injection current",
             0,
-            t_final,
+            self.t_final,
             (30, 33),
             help="Time for injection current (inj_time): The time interval during which the injection current is applied.",
         )
 
-        
-
-        model = HodgkinHuxleyModel(
-            V_init=V_init,
-            n_init=n_init,
-            m_init=m_init,
-            h_init=h_init,
-            dt=0.1,
-            t_final=t_final,
-        )
-
-        I_inj = np.ones_like(model.t) * I_inj
-        start, stop = inj_time
-        outside_interval = np.where(np.logical_or(model.t < start, model.t > stop))
+    def _create_injection_current(self) -> np.ndarray:
+        # calculate injection current interval
+        I_inj = np.ones_like(self.model.t) * self.I_inj
+        start, stop = self.inj_time
+        outside_interval = np.where(np.logical_or(self.model.t < start, self.model.t > stop))
         I_inj[outside_interval] = 0
-        t, V, n, m, h = model.simulate(I_inj)
 
-        fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, figsize=(10, 15))
+        return I_inj
 
-        ax1.plot(t, V, label="Voltage (mV)")
-        # ax1.plot(t, I_inj, label="Injection current")
-        ax1.set_ylabel("Voltage (mV)")
-        ax1.set_title("Hodgkin-Huxley Model Simulation")
-        # ax1.set_ylim(-60, 60)
-        ax1.grid()
+    def _plot_voltage(self):
+        # voltage figure
+        v_figure = plt.figure()
+        v_ax = v_figure.add_subplot()
+        v_ax.plot(self.model.t, self.model.V, label="Voltage (mV)")
+        # v_ax.plot(t, I_inj, label="Injection current")
+        v_ax.set_ylabel("Voltage (mV)")
+        v_ax.set_title("Hodgkin-Huxley Model Simulation")
+        # v_ax.set_ylim(-60, 60)
+        v_ax.grid()
 
-        ax2.plot(t, n, label="n")
-        ax2.set_ylabel("n")
-        ax2.grid()
+        st.pyplot(v_figure)
 
-        ax3.plot(t, m, label="m")
-        ax3.set_ylabel("m")
-        ax3.grid()
+    def _plot_currents(self, I_inj):
+        if not st.button("individual currents:"):
+            return 
+        
+        fig, (inj_ax, n_ax, m_ax, h_ax) = plt.subplots(4, 1, figsize=(10, 15), sharex=True)
+        inj_ax.plot(self.model.t, I_inj, label="injection current")
+        inj_ax.set_ylabel("injection_current")
+        inj_ax.grid()
+        
+        n_ax.plot(self.model.t, self.model.n, label="n: sodium current")
+        n_ax.set_ylabel("n: sodium current")
+        n_ax.grid()
 
-        ax4.plot(t, h, label="h")
-        ax4.set_xlabel("Time (ms)")
-        ax4.set_ylabel("h")
-        ax4.grid()
+        m_ax.plot(self.model.t, self.model.m, label="m: potassium current")
+        m_ax.set_ylabel("m: potassium current")
+        m_ax.grid()
+
+        h_ax.plot(self.model.t, self.model.h, label="h: leak current")
+        h_ax.set_xlabel("Time (ms)")
+        h_ax.set_ylabel("h: leak_current")
+        h_ax.grid()
 
         st.pyplot(fig)

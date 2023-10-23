@@ -36,8 +36,8 @@ class StreamlitApp:
 
         self.model.simulate(I_inj)
 
-        self._plot_voltage()
-        self._plot_currents(I_inj)
+        self._plot_voltage(I_inj)
+        self._plot_currents()
         self._plot_fft()
 
     @staticmethod
@@ -115,30 +115,30 @@ class StreamlitApp:
 
         return I_inj
 
-    def _plot_voltage(self):
+    def _plot_voltage(self, I_inj):
         # voltage figure
         v_figure = plt.figure()
         v_ax = v_figure.add_subplot()
         v_ax.plot(self.model.t, self.model.V, label="Voltage [mV]")
+        v_ax.plot(self.model.t, I_inj * 100, label=f"Injection current {max(I_inj)} [µA/cm^2]")
         # v_ax.plot(t, I_inj, label="Injection current")
         v_ax.set_ylabel("Voltage [mV]")
         v_ax.set_xlabel("time [mS]")
         v_ax.set_title("Hodgkin-Huxley Model Simulation")
         # v_ax.set_ylim(-60, 60)
         v_ax.grid()
+        v_ax.legend()
 
         st.pyplot(v_figure)
 
-    def _plot_currents(self, I_inj):
+    def _plot_currents(self):
         if not st.button("individual currents"):
             return
 
-        fig, (inj_ax, n_ax, m_ax, h_ax) = plt.subplots(
-            4, 1, figsize=(10, 15), sharex=True
+        fig, (n_ax, m_ax, h_ax) = plt.subplots(
+            3, 1, figsize=(10, 12), sharex=True
         )
-        inj_ax.plot(self.model.t, I_inj, label="injection current [mA]")
-        inj_ax.set_ylabel("injection_current")
-        inj_ax.grid()
+        
 
         n_ax.plot(self.model.t, self.model.n, label="n: sodium current [mA]")
         n_ax.set_ylabel("n: sodium current")

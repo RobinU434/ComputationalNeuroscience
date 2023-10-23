@@ -3,13 +3,14 @@ import numpy as np
 import streamlit as st
 
 from hodgkin_huxley_model.hodgkin_huxley import HodgkinHuxleyModel
+from scipy.fft import fft, fftfreq
 
 
 class StreamlitApp:
     def __init__(self, t_final: int = 100, dt: float = 0.2) -> None:
         self.t_final = t_final
         self.dt = dt
-        self.V_init: float = -64.9964
+        self.V_init: float
         self.n_init: float = 0.3177
         self.m_init: float = 0.0530
         self.h_init: float = 0.5960
@@ -19,7 +20,7 @@ class StreamlitApp:
     def run(self):
         st.title("Hodgkin-Huxley Model Simulation")
         self._add_documentation()
-        
+
         self._add_slider()
 
         self.model = HodgkinHuxleyModel(
@@ -32,12 +33,12 @@ class StreamlitApp:
         )
 
         I_inj = self._create_injection_current()
-        
+
         self.model.simulate(I_inj)
-        
+
         self._plot_voltage()
         self._plot_currents(I_inj)
-        
+        self._plot_fft()
 
     @staticmethod
     def _add_documentation():
@@ -77,16 +78,16 @@ class StreamlitApp:
         st.markdown(
             r"Here, $V$ represents the membrane potential, $m$, $n$, and $h$ are the gating variables, and $I_{\text{inj}}$, $I_{\text{Na}}$, $I_{\text{K}}$, and $I_{\text{L}}$ denote the injected current, sodium current, potassium current, and leakage current, respectively. $C_m$ represents the membrane capacitance. The variables are functions of the membrane potential, and their dynamics are influenced by the voltage-dependent activation and inactivation properties of the ion channels."
         )
-    
+
     def _add_slider(self):
         self.V_init = st.slider(
             "Initial Voltage (mV)",
-            -100,
-            100,
-            self.V_init,
+            -100.,
+            100.,
+            -64.9964,
             help="Initial Voltage (V_init): The starting membrane potential in mV.",
         )
-        
+
         self.I_inj = st.slider(
             "Injection current [mA/(cm^2)]",
             0.0,
@@ -107,7 +108,9 @@ class StreamlitApp:
         # calculate injection current interval
         I_inj = np.ones_like(self.model.t) * self.I_inj
         start, stop = self.inj_time
-        outside_interval = np.where(np.logical_or(self.model.t < start, self.model.t > stop))
+        outside_interval = np.where(
+            np.logical_or(self.model.t < start, self.model.t > stop)
+        )
         I_inj[outside_interval] = 0
 
         return I_inj
@@ -127,14 +130,16 @@ class StreamlitApp:
         st.pyplot(v_figure)
 
     def _plot_currents(self, I_inj):
-        if not st.button("individual currents:"):
-            return 
-        
-        fig, (inj_ax, n_ax, m_ax, h_ax) = plt.subplots(4, 1, figsize=(10, 15), sharex=True)
+        if not st.button("individual currents"):
+            return
+
+        fig, (inj_ax, n_ax, m_ax, h_ax) = plt.subplots(
+            4, 1, figsize=(10, 15), sharex=True
+        )
         inj_ax.plot(self.model.t, I_inj, label="injection current [mA]")
         inj_ax.set_ylabel("injection_current")
         inj_ax.grid()
-        
+
         n_ax.plot(self.model.t, self.model.n, label="n: sodium current [mA]")
         n_ax.set_ylabel("n: sodium current")
         n_ax.grid()
@@ -150,4 +155,18 @@ class StreamlitApp:
 
         h_ax.set_xlabel("time [mS]")
 
+        st.pyplot(fig)
+
+    def _plot_fft(self):
+        if not st.button("Fourier Analysis"):
+            return
+
+        yf = fft(self.model.V)
+        N = len(self.model.t)
+        xf = fftfreq(N, self.dt)[: N // 2]
+        fig = plt.figure()
+        ax = fig.add_subplot()
+        ax.plot(xf, 2.0 / N * np.abs(yf[0 : N // 2]))
+        ax.grid()
+        
         st.pyplot(fig)

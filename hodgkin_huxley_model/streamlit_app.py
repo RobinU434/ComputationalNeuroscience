@@ -8,6 +8,12 @@ from scipy.fft import fft, fftfreq
 
 class StreamlitApp:
     def __init__(self, t_final: int = 100, dt: float = 0.2) -> None:
+        """Initializes the Streamlit application for simulating the Hodgkin-Huxley model.
+
+        Args:
+            t_final (int, optional): The final time for the simulation. Defaults to 100.
+            dt (float, optional): The time step size for the simulation. Defaults to 0.2.
+        """
         self.t_final = t_final
         self.dt = dt
         self.V_init: float
@@ -18,6 +24,7 @@ class StreamlitApp:
         self.model: HodgkinHuxleyModel
 
     def run(self):
+        """Runs the Streamlit application for simulating the Hodgkin-Huxley model."""
         st.title("Hodgkin-Huxley Model Simulation")
         self._add_documentation()
 
@@ -42,6 +49,7 @@ class StreamlitApp:
 
     @staticmethod
     def _add_documentation():
+        """Adds the documentation about the Hodgkin-Huxley model to the Streamlit app."""
         st.markdown(
             """
             The Hodgkin-Huxley model is a mathematical representation of the electrical 
@@ -80,6 +88,7 @@ class StreamlitApp:
         )
 
     def _add_slider(self):
+        """Adds sliders for adjusting initial voltage and injection current to the Streamlit app."""
         self.V_init = st.slider(
             "Initial Voltage (mV)",
             -100.,
@@ -105,6 +114,11 @@ class StreamlitApp:
         )
 
     def _create_injection_current(self) -> np.ndarray:
+        """Creates the injection current based on the specified time interval.
+
+        Returns:
+            np.ndarray: The array representing the injection current.
+        """
         # calculate injection current interval
         I_inj = np.ones_like(self.model.t) * self.I_inj
         start, stop = self.inj_time
@@ -116,6 +130,11 @@ class StreamlitApp:
         return I_inj
 
     def _plot_voltage(self, I_inj):
+        """Plots the voltage and the injected current over time.
+
+        Args:
+            I_inj: The injected current array.
+        """
         # voltage figure
         v_figure = plt.figure()
         v_ax = v_figure.add_subplot()
@@ -132,6 +151,7 @@ class StreamlitApp:
         st.pyplot(v_figure)
 
     def _plot_currents(self):
+        """Plots the individual currents n, m, and h over time."""
         if not st.button("individual currents"):
             return
 
@@ -158,6 +178,7 @@ class StreamlitApp:
         st.pyplot(fig)
 
     def _plot_fft(self):
+        """Performs the Fourier analysis and plots the Fourier transform of the membrane potential."""
         if not st.button("Fourier Analysis"):
             return
 

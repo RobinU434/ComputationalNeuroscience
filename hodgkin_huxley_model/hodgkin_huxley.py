@@ -4,6 +4,16 @@ import numpy as np
 
 class HodgkinHuxleyModel:
     def __init__(self, V_init, n_init, m_init, h_init, dt, t_final):
+        """Initializes the Hodgkin-Huxley model with the specified parameters.
+
+        Args:
+            V_init (float): Initial membrane potential.
+            n_init (float): Initial value for the gating variable n.
+            m_init (float): Initial value for the gating variable m.
+            h_init (float): Initial value for the gating variable h.
+            dt (float): Time step size for the simulation.
+            t_final (float): Final time for the simulation.
+        """
         self.V_init = V_init
         self.n_init = n_init
         self.m_init = m_init
@@ -33,14 +43,14 @@ class HodgkinHuxleyModel:
         self.h = np.empty(len(self.t))
 
     def _n(self, V_prev: float, n_prev: float) -> float:
-        """Represents the probability that the voltage-gated potassium channels are open. These channels are responsible for the outward movement of potassium ions, contributing to the repolarization of the cell membrane.
+        """Calculates the gating variable n which represents the probability that the voltage-gated potassium channels are open.
 
         Args:
-            V_prev (float): _description_
-            n_prev (float): _description_
+            V_prev (float): Previous membrane potential.
+            n_prev (float): Previous value for the gating variable n.
 
         Returns:
-            float:
+            float: The updated value for the gating variable n.
         """
         # alpha_n determines the rate of transfer from outside to inside
         alpha_n = 0.01 * (V_prev + 55) / (1 - np.exp(-(V_prev + 55) / 10))
@@ -52,14 +62,14 @@ class HodgkinHuxleyModel:
         return n
 
     def _m(self, V_prev: float, m_prev: float) -> float:
-        """Represents the probability that the voltage-gated sodium channels are open. These channels are responsible for the inward movement of sodium ions, which leads to the depolarization of the cell membrane.
+        """Calculates the gating variable m which represents the probability that the voltage-gated sodium channels are open.
 
         Args:
-            V_prev (float): _description_
-            m_prev (float): _description_
+            V_prev (float): Previous membrane potential.
+            m_prev (float): Previous value for the gating variable m.
 
         Returns:
-            float: _description_
+            float: The updated value for the gating variable m.
         """
         alpha_m = 0.1 * (V_prev + 40) / (1 - np.exp(-(V_prev + 40) / 10))
         alpha_m = 0.1 * (V_prev + 40) / (1 - np.exp(-(V_prev + 40) / 10))
@@ -70,14 +80,14 @@ class HodgkinHuxleyModel:
         return m
 
     def _h(self, V_prev: float, h_prev: float) -> float:
-        """_summary_
+        """Calculates the gating variable h.
 
         Args:
-            V_prev (float): _description_
-            h_prev (float): _description_
+            V_prev (float): Previous membrane potential.
+            h_prev (float): Previous value for the gating variable h.
 
         Returns:
-            float: _description_
+            float: The updated value for the gating variable h.
         """
         alpha_h = 0.07 * np.exp(-0.05 * (V_prev + 65))
         alpha_h = 0.07 * np.exp(-0.05 * (V_prev + 65))
@@ -90,16 +100,17 @@ class HodgkinHuxleyModel:
     def _v(
         self, m_prev: float, h_prev: float, n_prev: float, v_prev: float, I_inj: float
     ) -> float:
-        """represents the membrane potential, or the voltage across the cell membrane. It is the main variable that governs the behavior of the system.
+        """Calculates the membrane potential, the main variable that governs the behavior of the system.
 
         Args:
-            m_prev (float): _description_
-            h_prev (float): _description_
-            n_prev (float): _description_
-            v_prev (float): _description_
+            m_prev (float): Previous value for the gating variable m.
+            h_prev (float): Previous value for the gating variable h.
+            n_prev (float): Previous value for the gating variable n.
+            v_prev (float): Previous membrane potential.
+            I_inj (float): Injected current.
 
         Returns:
-            _type_: _description_
+            float: The updated membrane potential.
         """
         g_Na = self.g_Na * (np.power(m_prev, 3)) * h_prev
         g_K = self.g_K * (np.power(n_prev, 4))
@@ -115,12 +126,16 @@ class HodgkinHuxleyModel:
         return v
 
     def simulate(self, I_inj: np.ndarray):
+        """Simulates the Hodgkin-Huxley model based on the injected current array.
+
+        Args:
+            I_inj (np.ndarray): Array of injected currents.
+        """
         self.V[0] = self.V_init
         self.n[0] = self.n_init
         self.m[0] = self.m_init
         self.h[0] = self.h_init
         for i in range(1, len(self.t)):
-            
             self.V[i] = self._v(
                 m_prev=self.m[i - 1],
                 h_prev=self.h[i - 1],
@@ -134,6 +149,16 @@ class HodgkinHuxleyModel:
             self.h[i] = self._h(V_prev=self.V[i], h_prev=self.h[i - 1])
         
     def g(self, alpha: float, beta: float, prev_value: float) -> float:
+        """Calculates the conductance based on the provided alpha, beta, and previous value.
+
+        Args:
+            alpha (float): Alpha value.
+            beta (float): Beta value.
+            prev_value (float): Previous conductance value.
+
+        Returns:
+            float: The updated conductance value.
+        """
         tau = 1 / (alpha + beta)
         g_inf = alpha * tau
         result = g_inf + (prev_value - g_inf) * np.exp(-self.dt / tau)

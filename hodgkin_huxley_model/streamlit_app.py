@@ -184,10 +184,11 @@ class StreamlitApp:
 
         yf = fft(self.model.V)
         N = len(self.model.t)
-        xf = fftfreq(N, self.dt)[: N // 2]
+        xf = fftfreq(N, self.dt)[: N // 10]
+
         fig = plt.figure()
         ax = fig.add_subplot()
-        ax.plot(xf, 2.0 / N * np.abs(yf[0 : N // 2]))
+        ax.plot(xf, 2.0 / N * np.abs(yf[0 : N // 10]))
         ax.grid()
         
         st.pyplot(fig)

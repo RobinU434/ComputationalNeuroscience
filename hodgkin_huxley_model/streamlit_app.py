@@ -7,7 +7,7 @@ from scipy.fft import fft, fftfreq
 
 
 class StreamlitApp:
-    def __init__(self, t_final: int = 100, dt: float = 0.2) -> None:
+    def __init__(self, t_final: int = 100, dt: float = 0.01) -> None:
         """Initializes the Streamlit application for simulating the Hodgkin-Huxley model.
 
         Args:
@@ -44,6 +44,10 @@ class StreamlitApp:
         self.model.simulate(I_inj)
 
         self._plot_voltage(I_inj)
+
+        self._plot_depol_circuit()
+
+
         self._plot_currents()
         self._plot_fft()
 
@@ -148,6 +152,17 @@ class StreamlitApp:
         v_ax.grid()
         v_ax.legend()
 
+        st.pyplot(v_figure)
+
+    def _plot_depol_circuit(self):
+        v_figure = plt.figure()
+        v_ax = v_figure.add_subplot()
+
+        derivation = np.diff(self.model.V) / self.dt
+        v_ax.plot(self.model.V[1:], derivation)
+        v_ax.set_xlabel("Voltage [mV]")
+        v_ax.set_ylabel(f"$\delta Voltage / \delta t$  [mV/ms]")
+        v_ax.grid()
         st.pyplot(v_figure)
 
     def _plot_currents(self):
